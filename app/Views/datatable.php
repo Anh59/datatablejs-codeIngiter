@@ -49,11 +49,12 @@
 
     $('#table').DataTable({
         dom: "Tfrtip",
+        processing: true,
         ajax: {
             url: "<?= base_url('listtable'); ?>",
-            type: "GET"
+            type: "GET",
         },
-        serverSide: true,
+        serverSide: true,    
         columns: [
                 {
                 data: null,
@@ -67,12 +68,15 @@
             { data: 'otp' },
             { data: 'status' },
             { 
-    data: null, 
-    render: function (data, type, row) {
-        return '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.id + '">Delete</button>';
-    }
-}
+                data: null, 
+                render: function (data, type, row) {
+                    return '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.id + '">Delete</button>';
+                }
+            }
+            
         ],
+        searching: true,
+        order: [[1, 'asc']],
         tableTools: {
             sRowSelect: "os",
             sSwfPath: "<?= base_url(); ?>dist/swf/copy_csv_xls_pdf.swf",

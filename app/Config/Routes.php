@@ -17,8 +17,12 @@ $routes->delete('/delete/(:num)', 'Table::deleteDataByAjax/$1');
 // $routes->get('/', 'Home::index');
 $routes->get('/livetable', 'TableController::index');
 $routes->get('/livedatatable', 'TableController::liveData');
-$routes->post('/table/deleteDataByAjax', 'TableController::deleteDataByAjax');
-$routes->post('/table/updateDataByAjax', 'TableController::updateDataByAjax');
+
+$routes->post('/create', 'TableController::createDataByAjax');
+$routes->put('/update/(:num)', 'TableController::updateDataByAjax/$1');
+$routes->delete('/delete/(:num)', 'TableController::deleteDataByAjax/$1');
+
+
 
 // $routes->get('/testtable', 'Table::test');
 // $routes->post('/listtable', 'Table::listData');

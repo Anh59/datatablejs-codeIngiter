@@ -3,16 +3,14 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
-use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class TableController extends BaseController
-{   
+{
     protected $userModel;
 
     public function __construct()
     {
-        // Khởi tạo model
         $this->userModel = new UserModel();
     }
 
@@ -23,53 +21,86 @@ class TableController extends BaseController
 
     public function liveData()
     {
-        $data = $this->userModel->findAll();
-        return $this->response->setJSON(['data' => $data]);
-    }
-    
-    public function deleteDataByAjax()
-    {
-        // Lấy instance của request
         $request = \Config\Services::request();
-    
-        // Lấy dữ liệu từ yêu cầu AJAX
-        $data = $request->getPost('data');
-    
-        if (is_array($data)) {
-            // Duyệt qua từng bản ghi trong dữ liệu
-            foreach ($data as $id => $fields) {
-                // Xóa bản ghi khỏi cơ sở dữ liệu
-                $this->userModel->delete($id);
+        $searchValue = $request->getGet('search')['value'] ?? ''; // Giá trị tìm kiếm
+        $orderColumnIndex = $request->getGet('order')[0]['column'] ?? 0; // Chỉ số cột
+        $orderDir = $request->getGet('order')[0]['dir'] ?? 'asc'; // asc hoặc desc
+        $columns = ['id', 'email', 'username', 'password', 'otp', 'status']; // Tên các cột
+
+        $builder = $this->userModel->builder();
+        $builder->select('*');
+
+        // Chức năng tìm kiếm
+        if (!empty($searchValue)) {
+            $builder->groupStart();
+            foreach ($columns as $column) {
+                $builder->orLike($column, $searchValue);
             }
-    
-            // Trả lời bằng JSON để xác nhận việc xóa
-            return $this->response->setJSON(['status' => 'success']);
-        } else {
-            // Trả lời bằng JSON để thông báo thất bại
-            return $this->response->setJSON(['status' => 'failure', 'message' => 'Dữ liệu không hợp lệ']);
+            $builder->groupEnd();
         }
+
+        // Chức năng sắp xếp
+        if (isset($orderColumnIndex) && isset($orderDir)) {
+            $builder->orderBy($columns[$orderColumnIndex], $orderDir);
+        }
+
+        // Phân trang
+        $limit = $request->getGet('length');
+        $offset = $request->getGet('start');
+        if (isset($limit) && isset($offset)) {
+            $builder->limit($limit, $offset);
+        }
+
+        // Lấy dữ liệu
+        $data = $builder->get()->getResultArray();
+
+        // Đếm tổng số bản ghi
+        $totalData = $this->userModel->countAll();
+        $totalFiltered = $builder->countAllResults(false);
+
+        $response = [
+            'draw' => intval($request->getGet('draw')),
+            'recordsTotal' => $totalData,
+            'recordsFiltered' => $totalFiltered,
+            'data' => $data
+        ];
+
+        return $this->response->setJSON($response);
     }
 
-    public function updateDataByAjax()
+    public function createDataByAjax()
+    {   
+        // $userModel = model('UserModel');
+        $data = $this->request->getPost('data')[0];
+
+        $this->userModel->insert($data);
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $data
+        ]);   
+    }
+
+    public function updateDataByAjax($id = null)
     {
-        // Lấy instance của request
-        $request = \Config\Services::request();
+        $input = $this->request->getRawInput();
+        $fieldData = $input['data'];
+        $fieldData = array_shift($fieldData);
 
-        // Lấy dữ liệu từ yêu cầu AJAX
-        $data = $request->getPost('data');
+        $this->userModel->update($id, $fieldData);
 
-        if (is_array($data)) {
-            // Duyệt qua từng bản ghi trong dữ liệu
-            foreach ($data as $id => $fields) {
-                // Cập nhật bản ghi trong cơ sở dữ liệu
-                $this->userModel->update($id, $fields);
-            }
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $fieldData
+        ]);
+    }
 
-            // Trả lời bằng JSON để xác nhận việc cập nhật
-            return $this->response->setJSON(['status' => 'success']);
-        } else {
-            // Trả lời bằng JSON để thông báo thất bại
-            return $this->response->setJSON(['status' => 'failure', 'message' => 'Dữ liệu không hợp lệ']);
-        }
+    public function deleteDataByAjax($id = null)
+    {
+        $this->userModel->delete($id);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Delete complete'
+        ]);
     }
 }

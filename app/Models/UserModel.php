@@ -12,5 +12,5 @@ class UserModel extends Model
     protected $allowedFields = ['email','username','password','otp','status']; // Các cột có thể chèn và cập nhật
 
     protected $returnType = 'array'; // Kiểu dữ liệu trả về (array hoặc object)
-    protected $useTimestamps = false; 
+    protected $useTimestamps = false;     
 }

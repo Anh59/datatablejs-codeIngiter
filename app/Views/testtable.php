@@ -78,7 +78,107 @@
             $('#table').on('click', 'tbody td:not(:first-child)', function() {
                 editor.inline(this);
             });
-        });
+        });$(document).ready(function() {
+    var editor = new $.fn.dataTable.Editor({
+        ajax: {
+            create: {
+                type: 'POST',
+                url: '<?= base_url('create'); ?>'
+            },
+            edit: {
+                type: 'PUT',
+                url: '<?= base_url('update'); ?>' + '/_id_'
+            },
+            remove: {
+                type: 'DELETE',
+                url: '<?= base_url('delete'); ?>' + '/_id_'
+            }
+        },
+        table: '#table',
+        idSrc: "id",
+        fields: [
+            { label: 'id', name: 'id' },
+            { label: 'Email', name: 'email' },
+            { label: 'User name', name: 'username' },
+            { label: 'Pass Word', name: 'password' },
+            { label: 'Otp', name: 'otp' },
+            { label: 'status', name: 'status' }
+        ]
+    });
+
+    $('#table').DataTable({
+        dom: "Bfrtip",
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "<?= base_url('listtable'); ?>",
+            type: "GET",
+            dataSrc: function (json) {
+                if (json.error) {
+                    console.log(json.error);
+                    return [];
+                }
+                return json.data;
+            },
+            error: function (xhr, error, thrown) {
+                console.error('Error: ' + error);
+                console.error('Response: ' + xhr.responseText);
+            }
+        },
+        columns: [
+            {
+                data: null,
+                orderable: false,
+                render: DataTable.render.select()
+            },
+            { data: 'id' },
+            { data: 'email' },
+            { data: 'username' },
+            { data: 'password' },
+            { data: 'otp' },
+            { data: 'status' },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    return '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.id + '">Delete</button>';
+                }
+            }
+        ],
+        searching: true,
+        order: [[1, 'asc']], // Sắp xếp mặc định theo cột thứ 2 (cột "id")
+        buttons: [
+            { extend: "create", editor: editor },
+            { extend: "edit", editor: editor },
+            { extend: "remove", editor: editor },
+            {
+                extend: "collection",
+                text: "Save As",
+                buttons: ['copy', 'csv', 'xls', 'pdf']
+            }
+        ]
+    });
+
+    $('#table').on('click', 'tbody td:not(:first-child)', function(e) {
+        editor.inline(this);
+    });
+
+    $('#table').on('click', '.delete-btn', function() {
+        var id = $(this).data('id');
+        if (confirm("Are you sure you want to delete this record?")) {
+            $.ajax({
+                url: '/delete/' + id,
+                type: 'DELETE',
+                success: function(response) {
+                    $('#table').DataTable().row($(this).parents('tr')).remove().draw();
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                }
+            });
+        }
+    });
+});
+
     </script>
 </body>
 </html>

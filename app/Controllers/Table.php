@@ -33,18 +33,57 @@ class Table extends BaseController
 
     public function listData()
     {
-        $data = $this->userModel->findAll();
-        return $this->response->setJSON(['data' => $data]);
+        $request = \Config\Services::request();
+        $searchValue = $request->getGet('search')['value']; // Giá trị tìm kiếm
+        $orderColumn = $request->getGet('order')[0]['column']; // Chỉ số cột
+        $orderDir = $request->getGet('order')[0]['dir']; // asc hoặc desc
+        $columns = ['id', 'email', 'username', 'password', 'otp', 'status']; // Tên các cột
+    
+        $builder = $this->userModel->builder();
+        $builder->select('*');
+    
+        // Chức năng tìm kiếm
+        if (!empty($searchValue)) {
+            $builder->groupStart();
+            foreach ($columns as $column) {
+                $builder->orLike($column, $searchValue);
+            }
+            $builder->groupEnd();
+        }
+    
+        // Chức năng sắp xếp
+        if (isset($orderColumn) && isset($orderDir)) {
+            $builder->orderBy($columns[$orderColumn], $orderDir);
+        }
+    
+        // Phân trang
+        $limit = $request->getGet('length');
+        $offset = $request->getGet('start');
+        if (isset($limit) && isset($offset)) {
+            $builder->limit($limit, $offset);
+        }
+    
+        // Lấy dữ liệu
+        $data = $builder->get()->getResultArray();
+    
+        // Đếm tổng số bản ghi
+        $totalData = $this->userModel->countAll();
+        $totalFiltered = $builder->countAllResults(false);
+    
+        $response = [
+            'draw' => intval($request->getGet('draw')),
+            'recordsTotal' => $totalData,
+            'recordsFiltered' => $totalFiltered,
+            'data' => $data
+        ];
+    
+        return $this->response->setJSON($response);
     }
     
-    // public function createDataByAjax()
-    // {
-    //     $data = $this->request->getPost();
-    //     $this->userModel->insert($data);
-    //     return $this->response->setJSON(['status' => 'success']);
-    //     // return $this->respond($response);
-    // }
     
+    
+    
+
     public function updateDataByAjax($id=null)
     {   
 

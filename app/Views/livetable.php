@@ -1,124 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.0.8/css/buttons.dataTables.min.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=2.0">
+    <title>Students Table</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/jqc-1.12.4/dt-2.0.7/b-3.0.2/sl-2.0.2/datatables.min.css" />
+    <link rel="stylesheet" href="Editor-PHP-2.3.2/css/editor.dataTables.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.2/css/dataTables.dateTime.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/buttons/2.0.8/js/dataTables.buttons.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/buttons/2.0.8/js/buttons.html5.min.js"></script>
-</head>
-<body>
-    <h1>Datatable js</h1>
-    <table id="table" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th>id</th>
-                <th>Email</th>
-                <th>User name</th>
-                <th>Pass Word</th>
-                <th>Otp</th>
-                <th>status</th>
-            </tr>
-        </thead>
-    </table>
-
-    <script>
+    <script src="https://cdn.datatables.net/v/dt/jqc-1.12.4/dt-2.0.7/b-3.0.2/sl-2.0.2/datatables.min.js"></script>
+    <script src="Editor-PHP-2.3.2/js/dataTables.editor.js"></script>
+    <script src="https://cdn.datatables.net/datetime/1.5.2/js/dataTables.dateTime.min.js"></script>
+    <script type="text/javascript" language="javascript" class="init">
         $(document).ready(function() {
-            // Khởi tạo DataTable
-            const table = $('#table').DataTable({
+            var editor = new $.fn.dataTable.Editor({
                 ajax: {
-                    url: '<?= base_url('livedatatable') ?>',
-                    type: 'GET',
+                    create: {
+                        type: 'POST',
+                        url: '<?= base_url('create'); ?>'
+                    },
+                    edit: {
+                        type: 'PUT',
+                        url: '<?= base_url('update'); ?>' + '/_id_'
+                    },
+                    remove: {
+                        type: 'DELETE',
+                        url: '<?= base_url('delete'); ?>' + '/_id_'
+                    }
                 },
+                table: '#table',
+                idSrc: "id",
+                fields: [
+                    { label: 'id', name: 'id' },
+                    { label: 'Email', name: 'email' },
+                    { label: 'User name', name: 'username' },
+                    { label: 'Pass Word', name: 'password' },
+                    { label: 'Otp', name: 'otp' },
+                    { label: 'status', name: 'status' }
+                ]
+            });
+
+            var table = $('#table').DataTable({
+                dom: "Bfrtip",
                 processing: true,
                 serverSide: true,
-                searching: true,
-                ordering: true,
-                paging: true,
+                ajax: {
+                    url: "<?= base_url('livedatatable'); ?>",
+                    type: "GET",
+                    dataSrc: function(json) {
+                        if (json.error) {
+                            console.log(json.error);
+                            return [];
+                        }
+                        return json.data;
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('Error: ' + error);
+                        console.error('Response: ' + xhr.responseText);
+                    }
+                },
                 columns: [
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data, type, row) {
+                            return '<input type="checkbox" class="editor-active">';
+                        },
+                        className: "dt-body-center"
+                    },
                     { data: 'id' },
                     { data: 'email' },
                     { data: 'username' },
                     { data: 'password' },
                     { data: 'otp' },
-                    { data: 'status' }
+                    { data: 'status' },
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            return '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.id + '">Delete</button>';
+                        }
+                    }
+                ],
+                searching: true,
+                order: [[1, 'asc']],
+                buttons: [
+                    { extend: "create", editor: editor },
+                    { extend: "edit", editor: editor },
+                    { extend: "remove", editor: editor },
+                    {
+                        extend: "collection",
+                        text: "Save As",
+                        buttons: ['copy', 'csv', 'xls', 'pdf']
+                    }
                 ]
             });
 
-            // Thêm sự kiện click vào mỗi dòng của bảng
-            $('#table').on('click', 'tbody tr', function() {
-                const rowData = table.row(this).data();
-                const id = rowData.id;
-
-                // Sửa dữ liệu
-                const newEmail = prompt('Enter new email:', rowData.email);
-                const newUsername = prompt('Enter new username:', rowData.username);
-                const newPassword = prompt('Enter new password:', rowData.password);
-                const newOtp = prompt('Enter new OTP:', rowData.otp);
-                const newStatus = prompt('Enter new status:', rowData.status);
-
-                if (newEmail !== null && newUsername !== null && newPassword !== null && newOtp !== null && newStatus !== null) {
-                    // Tạo object chứa dữ liệu mới
-                    const newData = {
-                        id: id,
-                        email: newEmail,
-                        username: newUsername,
-                        password: newPassword,
-                        otp: newOtp,
-                        status: newStatus
-                    };
-
-                    // Gửi yêu cầu cập nhật thông qua AJAX
-                    $.ajax({
-                        url: '<?= base_url('table/updateDataByAjax') ?>',
-                        type: 'POST',
-                        data: { data: { [id]: newData } }, // Định dạng lại dữ liệu gửi đi
-                        
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                alert('Data updated successfully!');
-                                table.ajax.reload(null, false);
-                            } else {
-                                alert('Failed to update data!');
-                            }
-                        },
-                        error: function () {
-                            alert('Error occurred while updating data!');
-                        }
-                    });
-                }
+            $('#table').on('click', 'tbody td:not(:first-child)', function(e) {
+                editor.inline(this);
             });
 
-            // Thêm sự kiện click vào nút xóa
-            $('#table').on('dblclick', 'tbody tr', function() {
-                const rowData = table.row(this).data();
-                const id = rowData.id;
-
-                if (confirm('Are you sure you want to delete this record?')) {
-                    // Gửi yêu cầu xóa thông qua AJAX
+            $('#table').on('click', '.delete-btn', function() {
+                var id = $(this).data('id');
+                if (confirm("Are you sure you want to delete this record?")) {
                     $.ajax({
-                        url: '<?= base_url('table/deleteDataByAjax') ?>',
-                        type: 'POST',
-                        data: { data: { [id]: {} } }, // Định dạng lại dữ liệu gửi đi
-                        success: function (response) {
-                            if (response.status === 'success') {
-                                alert('Data deleted successfully!');
-                                table.ajax.reload(null, false);
-                            } else {
-                                alert('Failed to delete data!');
-                            }
+                        url: '/delete/' + id,
+                        type: 'DELETE',
+                        success: function(response) {
+                            table.ajax.reload();
                         },
-                        error: function () {
-                            alert('Error occurred while deleting data!');
+                        error: function(xhr, status, error) {
+                            console.error(error);
                         }
                     });
                 }
             });
         });
     </script>
+</head>
+<body class="editor wide comments example">
+    <div class="container">
+        <section>
+            <h1>Students Table</h1>
+            <div id="example_wrapper" class="dataTables_wrapper form-inline dt-bootstrap">
+                <table id="table" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>OTP</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 </body>
 </html>
